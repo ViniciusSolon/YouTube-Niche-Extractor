@@ -66,7 +66,7 @@ if st.button("Analisar"):
             for chunk in tqdm(document_chunks[:10], desc="Gerando Resumos"):
                 youtube_summary_template = PromptTemplate(
                     input_variables=['transcricao'],
-                    template="Baseado nessa transcrição ```{transcricao}``` defina em apenas uma frase o nicho desse canal de youtube"
+                    template="Com base na seguinte transcrição, ```{transcricao}```, descreva o foco principal do canal de YouTube."
                 )
                 youtube_summary = LLMChain(llm=llm, prompt=youtube_summary_template)
 
