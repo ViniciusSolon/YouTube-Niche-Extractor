@@ -1,0 +1,5 @@
+google-api-python-client
+urllib3
+langchain
+tqdm
+streamlit
