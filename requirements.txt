@@ -3,4 +3,6 @@ urllib3
 langchain
 langchain-community
 tqdm
+youtube-transcript-api
+langchain-openai
 streamlit
