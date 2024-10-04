@@ -81,7 +81,7 @@ if st.button("Analisar"):
 
             niche_summary_list_template = PromptTemplate(
                 input_variables=['summary'],
-                template="Com base nesses tópicos ```{summary}``` liste de 3 a 5 principais nichos de canal de youtube"
+                template="Com base nesses tópicos ```{summary}``` liste 3 principais nichos de canal de youtube"
             )
 
             niche_summary_list = LLMChain(llm=llm, prompt=niche_summary_list_template)
