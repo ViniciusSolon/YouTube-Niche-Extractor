@@ -1,5 +1,6 @@
 google-api-python-client
 urllib3
 langchain
+langchain-community
 tqdm
 streamlit
