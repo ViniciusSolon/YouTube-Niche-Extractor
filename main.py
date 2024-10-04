@@ -9,8 +9,8 @@ from langchain.chains import LLMChain, SimpleSequentialChain
 from tqdm import tqdm
 
 # Configurações de chave de API
-key_youtube = st.secrets['keyyoutube']
-key_openai = st.secrets['keyopenia']
+key_youtube = st.secrets['KEYYOUTUBE']
+key_openai = st.secrets['KEYOPENIA']
 
 # Função para obter vídeos recentes de um canal
 def get_latest_videos_links(channel_id, max_results=10):
