@@ -1,4 +1,4 @@
-import os
+# Importar bibliotecas necessárias
 import streamlit as st
 from googleapiclient.discovery import build
 from urllib.parse import urlparse, parse_qs
@@ -8,41 +8,28 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain, SimpleSequentialChain
 from tqdm import tqdm
 
-# Configurações de chave de API
-key_youtube = st.secrets['KEYYOUTUBE']
-key_openai = st.secrets['KEYOPENIA']
+# Configurar as chaves de API
+key = st.secrets["youtube_api_key"]  # Insira sua chave API do YouTube
+key_openia = st.secrets["openai_api_key"]  # Insira sua chave API do OpenAI
 
-# Função para obter vídeos recentes de um canal
-def get_latest_videos_links(channel_id, max_results=10):
-    youtube = build('youtube', 'v3', developerKey=key_youtube)
-    request = youtube.search().list(
-        part='snippet',
-        channelId=channel_id,
-        maxResults=max_results,
-        order='date',
-        type='video'
-    )
-    response = request.execute()
-
-    videos = [(item['snippet']['title'], f'https://www.youtube.com/watch?v={item["id"]["videoId"]}') for item in response['items']]
-    return videos
-
-# Função para obter o ID do canal baseado no vídeo
-def get_channel_id_by_video_id(video_id):
-    youtube = build('youtube', 'v3', developerKey=key_youtube)
-    request = youtube.videos().list(part='snippet', id=video_id)
-    response = request.execute()
-
-    if response['items']:
-        return response['items'][0]['snippet']['channelId']
-    return None
-
-# Função para extrair o ID do vídeo de uma URL
+# Funções
 def get_video_id(url):
     parsed_url = urlparse(url)
-    return parse_qs(parsed_url.query).get('v', [None])[0]
+    query_string = parse_qs(parsed_url.query)
+    return query_string.get('v', [None])[0]
 
-# Função para carregar o conteúdo de vídeos de uma lista de URLs
+def get_channel_id_by_video_id(video_id):
+    youtube = build('youtube', 'v3', developerKey=key)
+    request = youtube.videos().list(part='snippet', id=video_id)
+    response = request.execute()
+    return response['items'][0]['snippet']['channelId'] if response['items'] else None
+
+def get_latest_videos_links(channel_id, max_results):
+    youtube = build('youtube', 'v3', developerKey=key)
+    request = youtube.search().list(part='snippet', channelId=channel_id, maxResults=max_results, order='date', type='video')
+    response = request.execute()
+    return [(item['snippet']['title'], f'https://www.youtube.com/watch?v={item["id"]["videoId"]}') for item in response['items']]
+
 def get_corpus_from_url_list(url_list):
     corpus = ""
     for url in url_list:
@@ -50,69 +37,58 @@ def get_corpus_from_url_list(url_list):
         loaded_data = loader.load()
         if loaded_data:
             corpus += loaded_data[0].page_content
-        else:
-            st.write("")
     return corpus
 
-# Função para dividir uma string em pedaços menores
-def divide_string(text, chunk_size=3000):
-    return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+def divide_string(s, tamanho_max=3000):
+    return [s[i:i+tamanho_max] for i in range(0, len(s), tamanho_max)]
 
-# Função principal de sumarização e identificação de nicho
-def summarize_niche(document_chunks, llm):
-    summaries = []
+# Interface Streamlit
+st.title("Resumo de Nicho de Canal do YouTube")
 
-    for chunk in tqdm(document_chunks[:10], desc="Processando"):
-        youtube_summary_template = PromptTemplate(
-            input_variables=['transcricao'],
-            template="Baseado nessa transcrição ```{transcricao}``` defina em apenas uma frase o nicho desse canal de youtube"
-        )
-        youtube_summary = LLMChain(llm=llm, prompt=youtube_summary_template)
-
-        Niche_summary_template = PromptTemplate(
-            input_variables=['transcricao'],
-            template="Resuma em no máximo 3 palavras o nicho do seguinte canal: ```{youtube_summary}```"
-        )
-        niche_summary = LLMChain(llm=llm, prompt=Niche_summary_template)
-
-        overall_chain = SimpleSequentialChain(chains=[youtube_summary, niche_summary])
-        summaries.append(niche_summary.run(chunk))
-
-    return summaries
-
-# Configurações da página no Streamlit
-st.title("Extrator de Nicho de Canais do YouTube")
-st.write("Este aplicativo extrai e sumariza o nicho de um canal com base nos vídeos mais recentes.")
-
-# Entrada da URL do vídeo do YouTube
-youtube_url = st.text_input("Insira a URL de um vídeo do YouTube:")
-
-if youtube_url:
-    video_id = get_video_id(youtube_url)
-    
-    if video_id:
+url = st.text_input("Insira a URL do vídeo do YouTube:")
+if st.button("Analisar"):
+    if url:
+        video_id = get_video_id(url)
         channel_id = get_channel_id_by_video_id(video_id)
+        latest_videos = get_latest_videos_links(channel_id, 10)
 
-        if channel_id:
-            # Obter vídeos recentes do canal
-            st.write(f"ID do Canal: {channel_id}")
-            latest_videos = get_latest_videos_links(channel_id)
-            st.write("Últimos vídeos encontrados:")
-            st.write(latest_videos)
+        if latest_videos:
+            st.write("Vídeos mais recentes:")
+            for title, video_url in latest_videos:
+                st.write(f"[{title}]({video_url})")
 
-            # Obter conteúdo de vídeos
-            url_list = [url for _, url in latest_videos]
+            url_list = [video[1] for video in latest_videos]
             corpus = get_corpus_from_url_list(url_list)
-
-            # Dividir o conteúdo e processar a sumarização
             document_chunks = divide_string(corpus)
-            llm = OpenAI(temperature=0.6, openai_api_key=key_openai, max_tokens=500)
-            summaries = summarize_niche(document_chunks, llm)
 
-            # Mostrar o resultado
-            st.write("Sumários de nichos:")
-            st.write(summaries)
+            summaries = []
+            llm = OpenAI(temperature=0.6, openai_api_key=key_openia, max_tokens=500)
+            for chunk in tqdm(document_chunks[:10], desc="Gerando Resumos"):
+                youtube_summary_template = PromptTemplate(
+                    input_variables=['transcricao'],
+                    template="Baseado nessa transcrição ```{transcricao}``` defina em apenas uma frase o nicho desse canal de youtube"
+                )
+                youtube_summary = LLMChain(llm=llm, prompt=youtube_summary_template)
+
+                niche_summary_template = PromptTemplate(
+                    input_variables=['transcricao'],
+                    template="Resuma em no máximo 3 palavras o nicho do seguinte canal: ```{youtube_summary}```"
+                )
+                niche_summary = LLMChain(llm=llm, prompt=niche_summary_template)
+
+                overall_chain = SimpleSequentialChain(chains=[youtube_summary, niche_summary])
+                summaries.append(niche_summary.run(chunk))
+
+            niche_summary_list_template = PromptTemplate(
+                input_variables=['summary'],
+                template="Com base nesses tópicos ```{summary}``` liste de 3 a 5 principais nichos de canal de youtube"
+            )
+
+            niche_summary_list = LLMChain(llm=llm, prompt=niche_summary_list_template)
+            niches = niche_summary_list.run(" ".join(summaries))
+
+            st.write("Nicho do canal:", niches)
         else:
-            st.error("Não foi possível encontrar o ID do canal.")
+            st.write("Nenhum vídeo encontrado para o canal.")
     else:
-        st.error("URL inválida.")
+        st.write("Por favor, insira uma URL válida.")
