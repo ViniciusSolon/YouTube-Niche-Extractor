@@ -51,7 +51,7 @@ def get_corpus_from_url_list(url_list):
         if loaded_data:
             corpus += loaded_data[0].page_content
         else:
-            st.warning(f"Não foi possível carregar conteúdo do vídeo: {url}")
+            st.write("")
     return corpus
 
 # Função para dividir uma string em pedaços menores
