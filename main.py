@@ -9,8 +9,8 @@ from langchain.chains import LLMChain, SimpleSequentialChain
 from tqdm import tqdm
 
 # Configurar as chaves de API
-key = st.secrets["youtube_api_key"]  # Insira sua chave API do YouTube
-key_openia = st.secrets["openai_api_key"]  # Insira sua chave API do OpenAI
+key = st.secrets["KEYYOUTUBE"]  # Insira sua chave API do YouTube
+key_openia = st.secrets["KEYOPENIA"]  # Insira sua chave API do OpenAI
 
 # Funções
 def get_video_id(url):
